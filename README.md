@@ -2,7 +2,7 @@
 
 Type number to add it to the stack
 Seperate Commands by a single space
-+ to add, - to subtract, * to multiply, / to divide (rounded), ^ to exponentiate, PRINT to print
++ to add, - to subtract, * to multiply, / to divide (rounded), ^ to exponentiate, PRINT to print, STDIN to read from standard input
 
 for example :
 3 5 +
@@ -13,4 +13,3 @@ this would print (3 + 5) - 6
 
 NOTE:
 floats are not allowed, only integers
-Stack-Language

@@ -50,6 +50,11 @@ func main() {
 				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
 				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
 				s.Push(strconv.FormatInt(int64(math.Pow(float64(secondNumber), float64(firstNumber))), 10))
+			} else if splitcmd[0] == "stdin" {
+				scanner := bufio.NewScanner(os.Stdin)
+				for scanner.Scan() {
+					s.Push(scanner.Text())
+				}
 			} else if splitcmd[0] == "Print" {
 				topCmd := s.Pop()
 				println(topCmd)
@@ -71,10 +76,12 @@ func GenerateCommands(command string) string {
 			return "Multiply"
 		} else if command == "/" {
 			return "Divide"
-		} else if command == "print" {
+		} else if command == "PRINT" {
 			return "Print"
 		} else if command == "^" {
 			return "Exponentiate"
+		} else if command == "STDIN" {
+			return "stdin"
 		} else {
 			return ""
 		}
