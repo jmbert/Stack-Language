@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"math"
 	"os"
 	"strconv"
@@ -14,6 +15,8 @@ func main() {
 	var s Stack
 
 	var lines []string
+
+	var currentValue string
 
 	scanner := bufio.NewScanner(f)
 	for i := 0; scanner.Scan(); i++ {
@@ -30,26 +33,53 @@ func main() {
 			splitcmd := strings.Split(stackCommands, ">")
 			if splitcmd[0] == "Push" {
 				s.Push(splitcmd[1])
+			} else if splitcmd[0] == "Pop" {
+				currentValue = s.Pop()
+			} else if splitcmd[0] == "dupe" {
+				s.Dupe()
+			} else if splitcmd[0] == "PushCurrent" {
+				s.Push(currentValue)
 			} else if splitcmd[0] == "Add" {
-				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				s.Push(strconv.FormatInt(secondNumber+firstNumber, 10))
+				firstNumber, error1 := strconv.ParseInt(s.Pop(), 10, 64)
+				secondNumber, error2 := strconv.ParseInt(s.Pop(), 10, 64)
+				if error1 != nil || error2 != nil {
+					log.Fatal("Invalid Addition")
+				} else {
+					s.Push(strconv.FormatInt(secondNumber+firstNumber, 10))
+				}
+
 			} else if splitcmd[0] == "Subtract" {
-				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				s.Push(strconv.FormatInt(secondNumber-firstNumber, 10))
+				firstNumber, error1 := strconv.ParseInt(s.Pop(), 10, 64)
+				secondNumber, error2 := strconv.ParseInt(s.Pop(), 10, 64)
+				if error1 != nil || error2 != nil {
+					log.Fatal("Invalid Subtraction")
+				} else {
+					s.Push(strconv.FormatInt(secondNumber-firstNumber, 10))
+				}
 			} else if splitcmd[0] == "Multiply" {
-				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				s.Push(strconv.FormatInt(secondNumber*firstNumber, 10))
+				firstNumber, error1 := strconv.ParseInt(s.Pop(), 10, 64)
+				secondNumber, error2 := strconv.ParseInt(s.Pop(), 10, 64)
+				if error1 != nil || error2 != nil {
+					log.Fatal("Invalid Multiplication")
+				} else {
+					s.Push(strconv.FormatInt(secondNumber*firstNumber, 10))
+				}
 			} else if splitcmd[0] == "Divide" {
-				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				s.Push(strconv.FormatInt(secondNumber/firstNumber, 10))
+				firstNumber, error1 := strconv.ParseInt(s.Pop(), 10, 64)
+				secondNumber, error2 := strconv.ParseInt(s.Pop(), 10, 64)
+				if error1 != nil || error2 != nil {
+					log.Fatal("Invalid Division")
+				} else {
+					s.Push(strconv.FormatInt(secondNumber/firstNumber, 10))
+				}
 			} else if splitcmd[0] == "Exponentiate" {
-				firstNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				secondNumber, _ := strconv.ParseInt(s.Pop(), 10, 64)
-				s.Push(strconv.FormatInt(int64(math.Pow(float64(secondNumber), float64(firstNumber))), 10))
+				firstNumber, error1 := strconv.ParseInt(s.Pop(), 10, 64)
+				secondNumber, error2 := strconv.ParseInt(s.Pop(), 10, 64)
+				if error1 != nil || error2 != nil {
+					log.Fatal("Invalid Exponentiation")
+				} else {
+					s.Push(strconv.FormatInt(int64(math.Pow(float64(secondNumber), float64(firstNumber))), 10))
+				}
 			} else if splitcmd[0] == "stdin" {
 				scanner := bufio.NewScanner(os.Stdin)
 				for scanner.Scan() {
@@ -82,8 +112,14 @@ func GenerateCommands(command string) string {
 			return "Exponentiate"
 		} else if command == "STDIN" {
 			return "stdin"
+		} else if command == "POP" {
+			return "Pop"
+		} else if command == "PUSH" {
+			return "PushCurrent"
+		} else if command == "DUPE" {
+			return "dupe"
 		} else {
-			return ""
+			return "Push>" + command
 		}
 	} else {
 		return "Push>" + command
@@ -108,4 +144,10 @@ func (s *Stack) Pop() string {
 	s.stack = poppedStack
 
 	return lastElement
+}
+
+func (s *Stack) Dupe() {
+	cmd := s.Pop()
+	s.Push(cmd)
+	s.Push(cmd)
 }
