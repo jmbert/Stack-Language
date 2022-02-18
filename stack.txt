@@ -1,1 +1,2 @@
-10 DUPE + PRINT
+"hello" "space" CONCAT PRINT
+"world" CONCAT PRINT
