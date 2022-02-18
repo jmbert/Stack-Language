@@ -1,2 +1,3 @@
 # Stack-Language
-A stack language i built in golang
+
+Type number to add it to the stack
