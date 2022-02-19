@@ -13,7 +13,6 @@ SLEEP() sleeps for the number of seconds in the parentheses
 CLEAR clears the stack
 CONCAT concatanates the last two elements
 LEN pushes the length of the stack onto the stack
-
 for example :
 INPUT(Starting number: )
 PRINT
