@@ -17,13 +17,13 @@ for example :
 INPUT(Starting number: )
 PRINT
 1
--
++
 SLEEP(1)
-CONDJUMP(>0:1)
+CONDJUMP(>10:1)
 PRINT
 JUMP(0)
 
-this would take an input, then subtract one until it reached 0, then take another input, etc.
+this would take an input, then add one until it reached 10, then take another input, etc.
 
 NOTE:
 floats are not allowed, only integers
