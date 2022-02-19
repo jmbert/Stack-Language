@@ -1,2 +1,6 @@
-"hello" "space" CONCAT PRINT
-"world" CONCAT PRINT
+INPUT(Number: )
+1
+-
+SLEEP(1)
+PRINT
+CONDJUMP(>0:1)
