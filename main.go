@@ -13,6 +13,9 @@ import (
 )
 
 var currentline = 0
+var currentFile *os.File
+var currentLines []string
+var scanCounter = 0
 
 func main() {
 	//fScanner := bufio.NewScanner(os.Stdin)
@@ -50,6 +53,10 @@ func main() {
 	s.functionMap["PRINTSTR"] = s.PRINTSTR
 	s.functionMap["CLEAR"] = s.CLEAR
 	s.functionMap["CONCAT"] = s.CONCAT
+	s.functionMap["LOAD"] = s.LOAD
+	s.functionMap["SCAN"] = s.SCAN
+	s.functionMap["SCANLN"] = s.SCANLN
+	s.functionMap["UNLOAD"] = s.UNLOAD
 
 	var lines []string
 
@@ -61,20 +68,27 @@ func main() {
 	for _ = 0; currentline < len(lines); currentline++ {
 		var cmd = lines[currentline]
 		var seperated = strings.Split(cmd, "(")
+		var checkLoad = strings.Split(cmd, "<>")
 
-		if len(seperated) == 0 {
-			var stackCommand = s.functionMap[cmd]
-			if stackCommand != nil {
-				stackCommand(cmd)
+		if len(checkLoad) != 0 {
+			if len(seperated) == 0 {
+				var stackCommand = s.functionMap[cmd]
+				if stackCommand != nil {
+					stackCommand(cmd)
+				} else {
+					s.Push(cmd)
+				}
 			} else {
-				s.Push(cmd)
+				var stackCommand = s.functionMap[seperated[0]]
+				if stackCommand != nil {
+					stackCommand(cmd)
+				} else {
+					s.Push(cmd)
+				}
 			}
 		} else {
-			var stackCommand = s.functionMap[seperated[0]]
-			if stackCommand != nil {
-				stackCommand(cmd)
-			} else {
-				s.Push(cmd)
+			if checkLoad[0] == "LOAD" {
+				s.LOAD(checkLoad[1])
 			}
 		}
 
@@ -377,4 +391,43 @@ func (s *Stack) CONCAT(command string) {
 
 		s.Push("string:" + "\"" + properString2 + properString1 + "\"")
 	}
+}
+
+func (s *Stack) LOAD(command string) {
+	seperated := strings.Split(command, "(")
+
+	if len(seperated) != 2 {
+		log.Fatal("Invalid load, add parentheses")
+	} else {
+		usableCmd := strings.Replace(seperated[1], ")", "", 1)
+		f, err := os.Open(usableCmd)
+		if err != nil {
+			log.Fatal("Error opening file")
+		} else {
+			currentFile = f
+		}
+	}
+
+}
+
+func (s *Stack) SCAN(command string) {
+	if currentFile == nil || currentLines != nil {
+		log.Fatal("invalid scan")
+	} else {
+		scanner := bufio.NewScanner(currentFile)
+		for i := 0; scanner.Scan(); i++ {
+			currentLines = append(currentLines, scanner.Text())
+		}
+	}
+}
+
+func (s *Stack) SCANLN(command string) {
+	s.Push(currentLines[scanCounter])
+	scanCounter++
+}
+
+func (s *Stack) UNLOAD(command string) {
+	currentFile = nil
+	currentLines = nil
+	scanCounter = 0
 }
