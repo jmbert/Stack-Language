@@ -1,0 +1,8 @@
+INPUT(Starting number: );
+INPUT(Delay: );
+POP;
+1;
+RUNFILE(minus.txt);
+SLEEP(__ACC__);
+PRINT;
+CONDJUMP(>0:3);

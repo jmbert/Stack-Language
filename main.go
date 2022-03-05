@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -16,53 +17,68 @@ var currentline = 0
 var currentFile *os.File
 var currentLines []string
 var scanCounter = 0
+var accValue string
+
+func setUpDispatch(s *Stack) {
+	s.dispatch = make(map[string]func(command string))
+
+	s.dispatch["POP"] = s.POP
+	s.dispatch["PUSH"] = func(command string) { s.Push(accValue) }
+	s.dispatch["+"] = s.Add
+	s.dispatch["-"] = s.Subtract
+	s.dispatch["*"] = s.Multiply
+	s.dispatch["/"] = s.Divide
+	s.dispatch["^"] = s.Exponentiate
+	s.dispatch["DUPE"] = s.Dupe
+	s.dispatch["STDIN"] = s.STDIN
+	s.dispatch["INPUT"] = s.INPUT
+	s.dispatch["JUMP"] = s.JUMP
+	s.dispatch["CONDJUMP"] = s.CONDJUMP
+	s.dispatch["LENGTH"] = s.LENGTH
+	s.dispatch["SLEEP"] = s.SLEEP
+	s.dispatch["PRINT"] = s.PRINT
+	s.dispatch["PRINTSTR"] = s.PRINTSTR
+	s.dispatch["CLEAR"] = s.CLEAR
+	s.dispatch["CONCAT"] = s.CONCAT
+	s.dispatch["LOAD"] = s.LOAD
+	s.dispatch["SCAN"] = s.SCAN
+	s.dispatch["SCANLN"] = s.SCANLN
+	s.dispatch["UNLOAD"] = s.UNLOAD
+	s.dispatch["RUN"] = s.RUN
+	s.dispatch["RUNFILE"] = s.RUNFILE
+	s.dispatch["SCANFILE"] = s.SCANFILE
+}
 
 func main() {
-	//fScanner := bufio.NewScanner(os.Stdin)
-
-	//fScanner.Scan()
-	//filename := fScanner.Text()
-
-	f, err := os.Open("stack.txt")
-
-	if err != nil {
-		//log.Fatalf("No file %s exists. Try adding a complete path", filename)
+	var f []byte
+	var err error
+	if len(os.Args) == 1 {
+		f, err = ioutil.ReadFile("main.txt")
+	} else {
+		f, err = ioutil.ReadFile(os.Args[1])
 	}
 
-	var currentValue string
+	if err != nil {
+		log.Fatalf("No file %s exists. Try adding a complete path", "stack.txt")
+	}
 
 	var s Stack
 
-	s.functionMap = make(map[string]func(command string))
+	setUpDispatch(&s)
 
-	s.functionMap["POP"] = func(command string) { currentValue = s.Pop(command) }
-	s.functionMap["PUSH"] = func(command string) { s.Push(currentValue) }
-	s.functionMap["+"] = s.Add
-	s.functionMap["-"] = s.Subtract
-	s.functionMap["*"] = s.Multiply
-	s.functionMap["/"] = s.Divide
-	s.functionMap["^"] = s.Exponentiate
-	s.functionMap["DUPE"] = s.Dupe
-	s.functionMap["STDIN"] = s.STDIN
-	s.functionMap["INPUT"] = s.INPUT
-	s.functionMap["JUMP"] = s.JUMP
-	s.functionMap["CONDJUMP"] = s.CONDJUMP
-	s.functionMap["LENGTH"] = s.LENGTH
-	s.functionMap["SLEEP"] = s.SLEEP
-	s.functionMap["PRINT"] = s.PRINT
-	s.functionMap["PRINTSTR"] = s.PRINTSTR
-	s.functionMap["CLEAR"] = s.CLEAR
-	s.functionMap["CONCAT"] = s.CONCAT
-	s.functionMap["LOAD"] = s.LOAD
-	s.functionMap["SCAN"] = s.SCAN
-	s.functionMap["SCANLN"] = s.SCANLN
-	s.functionMap["UNLOAD"] = s.UNLOAD
+	var lines = strings.Split(string(f), ";")
 
-	var lines []string
+	for i, line := range lines {
+		line = strings.ReplaceAll(line, "\n", "")
+		if line != "" {
+			if line[0] == ' ' {
+				line = trimFirstRune(line)
+			}
+			lines[i] = line
+		} else {
+			remove(lines, i)
+		}
 
-	scanner := bufio.NewScanner(f)
-	for i := 0; scanner.Scan(); i++ {
-		lines = append(lines, scanner.Text())
 	}
 
 	for _ = 0; currentline < len(lines); currentline++ {
@@ -72,14 +88,14 @@ func main() {
 
 		if len(checkLoad) != 0 {
 			if len(seperated) == 0 {
-				var stackCommand = s.functionMap[cmd]
+				var stackCommand = s.dispatch[cmd]
 				if stackCommand != nil {
 					stackCommand(cmd)
 				} else {
 					s.Push(cmd)
 				}
 			} else {
-				var stackCommand = s.functionMap[seperated[0]]
+				var stackCommand = s.dispatch[seperated[0]]
 				if stackCommand != nil {
 					stackCommand(cmd)
 				} else {
@@ -142,32 +158,26 @@ func TestCondition(condition string, topValue int) bool {
 	}
 }
 
-func CheckString(command string) (string, bool) {
-	var seperated = strings.Split(command, ":")
-
-	if len(seperated) != 1 {
-		return seperated[1], true
-	} else {
-		return "", false
-	}
-}
-
 type Stack struct {
-	stack       []string
-	functionMap map[string]func(command string)
+	stack    []string
+	dispatch map[string]func(command string)
 }
 
 func (s *Stack) Push(command string) {
 	s.stack = append(s.stack, command)
+
 }
 
 func (s *Stack) Pop(command string) string {
+	if len(s.stack) == 0 {
+		log.Fatalf("No items in stack to pop")
+	}
+
 	var poppedStack []string
 	var lastElement = s.stack[len(s.stack)-1]
 
-	for i := 0; i < len(s.stack)-1; i++ {
-		poppedStack = append(poppedStack, s.stack[i])
-	}
+	poppedStack = s.stack[:len(s.stack)-1]
+
 	s.stack = poppedStack
 
 	return lastElement
@@ -330,24 +340,48 @@ func (s *Stack) CONDJUMP(command string) {
 	if len(condition) != 2 {
 		log.Fatal("invalid condition")
 	} else {
-		if TestCondition(condition[0], int(topVal)) {
-			if len(seperated) != 2 {
-				log.Fatal("Invalid jump, add parentheses")
-			} else {
-				usableCmd := strings.Replace(condition[1], ")", "", 1)
-
-				if usableCmd == "__TOPREPLACE__" {
-					usableCmd = s.Pop(command)
-					s.Push(usableCmd)
-				} else if usableCmd == "__TOP__" {
-					usableCmd = s.Pop(command)
-				}
-				tryInt, err := strconv.ParseInt(usableCmd, 10, 64)
-
-				if err != nil {
-					log.Fatal("invalid input to jump")
+		if condition[0] == "LINES" {
+			if scanCounter < len(currentLines) {
+				if len(seperated) != 2 {
+					log.Fatal("Invalid jump, add parentheses")
 				} else {
-					currentline = int(tryInt - 1)
+					usableCmd := strings.Replace(condition[1], ")", "", 1)
+
+					if usableCmd == "__TOPREPLACE__" {
+						usableCmd = s.Pop(command)
+						s.Push(usableCmd)
+					} else if usableCmd == "__TOP__" {
+						usableCmd = s.Pop(command)
+					}
+					tryInt, err := strconv.ParseInt(usableCmd, 10, 64)
+
+					if err != nil {
+						log.Fatal("invalid input to jump")
+					} else {
+						currentline = int(tryInt - 1)
+					}
+				}
+			}
+		} else {
+			if TestCondition(condition[0], int(topVal)) {
+				if len(seperated) != 2 {
+					log.Fatal("Invalid jump, add parentheses")
+				} else {
+					usableCmd := strings.Replace(condition[1], ")", "", 1)
+
+					if usableCmd == "__TOPREPLACE__" {
+						usableCmd = s.Pop(command)
+						s.Push(usableCmd)
+					} else if usableCmd == "__TOP__" {
+						usableCmd = s.Pop(command)
+					}
+					tryInt, err := strconv.ParseInt(usableCmd, 10, 64)
+
+					if err != nil {
+						log.Fatal("invalid input to jump")
+					} else {
+						currentline = int(tryInt - 1)
+					}
 				}
 			}
 		}
@@ -359,6 +393,15 @@ func (s *Stack) SLEEP(command string) {
 
 	if len(seperated) != 2 {
 		log.Fatal("Invalid sleep, add parentheses")
+	} else if strings.ReplaceAll(seperated[1], ")", "") == "__ACC__" {
+		cmd := accValue
+		tryInt, err := strconv.ParseInt(cmd, 10, 64)
+
+		if err != nil {
+			log.Fatal("invalid input to sleep")
+		} else {
+			time.Sleep(time.Duration(tryInt) * time.Second)
+		}
 	} else {
 		usableCmd := strings.Replace(seperated[1], ")", "", 1)
 		tryInt, err := strconv.ParseInt(usableCmd, 10, 64)
@@ -378,26 +421,36 @@ func (s *Stack) LENGTH(command string) {
 func (s *Stack) CONCAT(command string) {
 	firstString := s.Pop(command)
 	secondString := s.Pop(command)
-
-	properString1, isString1 := CheckString(firstString)
-	properString2, isString2 := CheckString(secondString)
-
-	properString1 = strings.Replace(properString1, "\"", "", -1)
-	properString2 = strings.Replace(properString2, "\"", "", -1)
-
-	if !isString1 || !isString2 {
-		log.Fatal("Invalid Concat")
-	} else {
-
-		s.Push("string:" + "\"" + properString2 + properString1 + "\"")
-	}
+	s.Push(secondString + firstString)
 }
 
 func (s *Stack) LOAD(command string) {
+
 	seperated := strings.Split(command, "(")
 
 	if len(seperated) != 2 {
 		log.Fatal("Invalid load, add parentheses")
+	} else if seperated[1] == ")" {
+		cmd := s.Pop(command)
+		s.Push(cmd)
+		usableCmd := strings.Split(cmd, ":")[0]
+		f, err := os.Open(usableCmd)
+		if err != nil {
+			log.Fatal("Error opening file")
+		} else {
+			currentFile = f
+		}
+	} else if strings.ReplaceAll(seperated[1], ")", "") == "__ACC__" {
+		var usableValue string
+		if len(strings.Split(accValue, "\"")) != 0 {
+			usableValue = strings.Split(accValue, "\"")[0]
+		}
+		f, err := os.Open(usableValue)
+		if err != nil {
+			log.Fatal("Error opening file")
+		} else {
+			currentFile = f
+		}
 	} else {
 		usableCmd := strings.Replace(seperated[1], ")", "", 1)
 		f, err := os.Open(usableCmd)
@@ -407,7 +460,6 @@ func (s *Stack) LOAD(command string) {
 			currentFile = f
 		}
 	}
-
 }
 
 func (s *Stack) SCAN(command string) {
@@ -422,7 +474,9 @@ func (s *Stack) SCAN(command string) {
 }
 
 func (s *Stack) SCANLN(command string) {
-	s.Push(currentLines[scanCounter])
+	if scanCounter < len(currentLines) {
+		s.Push(currentLines[scanCounter])
+	}
 	scanCounter++
 }
 
@@ -430,4 +484,55 @@ func (s *Stack) UNLOAD(command string) {
 	currentFile = nil
 	currentLines = nil
 	scanCounter = 0
+}
+
+func (s *Stack) RUN(command string) {
+	var cmd = s.Pop("")
+
+	var stackCommand = s.dispatch[cmd]
+	if stackCommand != nil {
+		stackCommand(cmd)
+
+	} else {
+		s.Push(cmd)
+	}
+}
+
+func (s *Stack) RUNFILE(command string) {
+	s.LOAD(command)
+	s.SCAN(command)
+	for i := 0; i < len(currentLines); i++ {
+
+		s.SCANLN(command)
+		s.RUN(command)
+	}
+	s.UNLOAD(command)
+}
+
+func (s *Stack) SCANFILE(command string) {
+	s.LOAD(command)
+	s.SCAN(command)
+	for i := 0; i < len(currentLines); i++ {
+		s.SCANLN(command)
+	}
+	s.UNLOAD(command)
+}
+
+func (s *Stack) POP(command string) {
+	if len(s.stack) == 0 {
+		log.Fatalf("No items in stack to pop")
+	}
+
+	var poppedStack []string
+	var lastElement = s.stack[len(s.stack)-1]
+
+	poppedStack = s.stack[:len(s.stack)-1]
+
+	s.stack = poppedStack
+
+	accValue = lastElement
+}
+
+func remove(slice []string, s int) []string {
+	return append(slice[:s], slice[s+1:]...)
 }
